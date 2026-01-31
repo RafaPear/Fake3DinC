@@ -13,6 +13,7 @@
 
 int main(void) {
     printf("Initializing Window...\n");
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIGHDPI | FLAG_INTERLACED_HINT);
     InitWindow(WIDTH, HEIGHT, "Fake 3D");
 
     SetTargetFPS(FPS);
@@ -22,15 +23,17 @@ int main(void) {
     Cube *cube = createCube((Vector3){0, 0, 20}, 10);
     if (!cube) return -1;
     ProjectedCube *projected = createProjectedCube();
-    // float radius = 50;
-    float angle = .01;
+    float radius = 50;
+    float angle = .07;
     
     while(!WindowShouldClose()){
-        //radius -= SPEED;
+        screen.w = GetScreenWidth();
+        screen.h = GetScreenHeight();
+        radius -= SPEED;
         // rotateCubeZAxisLocalSpace(cube, angle);
         rotateCubeYAxisLocalSpace(cube, angle);
         // rotateCubeXAxisLocalSpace(cube, angle);
-        //updateCube(cube, SPEED);
+        // updateCube(cube, SPEED);
         projectCube(cube, projected, screen);
         
         BeginDrawing();
