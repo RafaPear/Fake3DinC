@@ -1,0 +1,14 @@
+[
+  {
+    "file": "main.c",
+    "arguments": [
+      "gcc",
+      "main.c",
+      "-I/opt/homebrew/Cellar/raylib/5.5/include",
+      "-o",
+      "app"
+    ],
+    "directory": "/Users/rafap/2-Coding/C/fake3dCpu",
+    "output": "app"
+  }
+]
