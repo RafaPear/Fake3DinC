@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "geometry.h"
+#include "raylib.h"
 
 ProjectedEdge projectEdge(Edge edge, Screen screen){
     Vector2 start = project(*edge.start, screen);
@@ -9,6 +10,20 @@ ProjectedEdge projectEdge(Edge edge, Screen screen){
     return (ProjectedEdge){
         .start = start,
         .end = end
+    };
+}
+
+ProjectedFace projectFace(Face face, Screen screen){
+    Vector2 topR = project(*face.topR, screen);
+    Vector2 topL = project(*face.topL, screen);
+    Vector2 bottomR = project(*face.bottomR, screen);
+    Vector2 bottomL = project(*face.bottomL, screen);
+    return (ProjectedFace){
+        .topR    = topR,
+        .topL    = topL,
+        .bottomR = bottomR,
+        .bottomL = bottomL,
+        .color   = face.color
     };
 }
 
@@ -21,6 +36,28 @@ void updateEdges(Edge *edges, float speed){
     for (int i = 0; i < 12; i++) updateEdge(&edges[i], speed);
 }
 
+long clamp(long a, long min, long max){
+    if (a < min) return min;
+    if (a > max) return max;
+    return a;
+}
+
+void updateFacesColor(Face *faces, Color baseColor){
+    for (int i = 0; i < 6; i++){
+        Face face = faces[i];
+        unsigned char middleZ = clamp((face.topR->z + face.bottomL->z)*2, 0, 255);
+        face.color = (Color){
+            .r = clamp(baseColor.r - middleZ, 1, 255),
+            .g = clamp(baseColor.g - middleZ, 1, 255),
+            .b = clamp(baseColor.b - middleZ, 1, 255),
+            .a = clamp(baseColor.a, 1, 255),
+        };
+        
+        faces[i] = face;
+    }
+    
+}
+
 void drawEdge(ProjectedEdge edge, Color color){
     DrawLine(edge.start.x, edge.start.y, edge.end.x, edge.end.y, color);    
 }
@@ -29,9 +66,10 @@ void drawEdges(ProjectedEdge *edges, Color color){
     for (int i = 0; i < 12; i++) drawEdge(edges[i], color);
 }
 
-Cube *createCube(Vector3 pos, int side){
+Cube *createCube(Vector3 pos, int side, Color color){
     Vector3 *vertices = malloc(sizeof(Vector3)*8);
     Edge *edges = malloc(sizeof(Edge)*12);
+    Face *faces = malloc(sizeof(Face)*6);
     Cube *cube = malloc(sizeof(Cube));
 
     if (!vertices){
@@ -45,7 +83,13 @@ Cube *createCube(Vector3 pos, int side){
         return NULL;
     }
     printf("Created edges array.\n");
-    
+
+    if (!faces){
+        printf("Could not create faces array.\n");
+        return NULL;
+    }
+    printf("Created faces array.\n");
+   
     if (!cube){
         printf("Could not create cube.\n");
         return NULL;
@@ -54,7 +98,9 @@ Cube *createCube(Vector3 pos, int side){
     
     cube->vertices = vertices;
     cube->edges = edges;
+    cube->faces = faces;
     cube->side = side;
+    cube->color = color;
     int halfSide = side/2;
 
     printf("Initalized Cube.\n");
@@ -66,6 +112,12 @@ Cube *createCube(Vector3 pos, int side){
         {5, 1}, {5, 4}, {5, 7},
     };
 
+    int facesMask[6][4] = {
+      {3, 2, 1, 0}, {6, 7, 4, 5},
+      {2, 6, 0, 4}, {7, 3, 5, 1},
+      {7, 6, 3, 2}, {1, 0, 5, 4}  
+    };
+
     for (int i = 0; i < 8; i++){
         vertices[i] = (Vector3){
             pos.x + ((i&1) ? halfSide : -halfSide),
@@ -75,6 +127,26 @@ Cube *createCube(Vector3 pos, int side){
     }
 
     printf("Populated vertices.\n");
+
+    for (int i = 0; i < 6; i++){
+        int *idxs = facesMask[i];
+        Face face = (Face){
+            .topR    = &vertices[idxs[0]],
+            .topL    = &vertices[idxs[1]],
+            .bottomR = &vertices[idxs[2]],
+            .bottomL = &vertices[idxs[3]],
+        };
+        unsigned char middleZ = (face.topR->z + face.bottomL->z);
+        face.color = (Color){
+            .r = color.r - middleZ,
+            .g = color.g - middleZ,
+            .b = color.b - middleZ,
+            .a = color.a,
+        };
+        faces[i] = face;
+    }
+
+    printf("Populated faces.\n");
 
     for(int i = 0; i < 12; i++){
         int a = edgesMask[i][0];
@@ -91,6 +163,7 @@ bool freeCube(Cube *cube){
     if(!cube) return false;
     free(cube->vertices);
     free(cube->edges);
+    free(cube->faces);
     return true;
 }
 
@@ -276,9 +349,11 @@ void rotateCubeXAxisLocalSpace(Cube *cube, float angle){
 ProjectedCube *createProjectedCube(){
     Vector2 *vertices = malloc(sizeof(Vector2)*8);
     ProjectedEdge *edges = malloc(sizeof(ProjectedEdge)*12);
+    ProjectedFace *faces = malloc(sizeof(ProjectedFace)*12);
     ProjectedCube *cube = malloc(sizeof(ProjectedCube));
     cube->vertices = vertices;
     cube->edges = edges;
+    cube->faces = faces;
     return cube;
 }
 
@@ -286,20 +361,34 @@ bool freeProjectedCube(ProjectedCube *cube){
     if(!cube) return false;
     free(cube->vertices);
     free(cube->edges);
+    free(cube->faces);
     return true;
 }
 
 void projectCube(Cube *cube, ProjectedCube *projected, Screen screen){
     for (int i = 0; i < 8; i++) projected->vertices[i] = project(cube->vertices[i], screen);
     for (int i = 0; i < 12; i++) projected->edges[i] = projectEdge(cube->edges[i], screen);
+    for (int i = 0; i < 6; i++) projected->faces[i] = projectFace(cube->faces[i], screen);
 }
 
 void updateCube(Cube *cube, float delta){
     updatePoints(cube->vertices, 8, delta);
     updateEdges(cube->edges, delta);
+    updateFacesColor(cube->faces, cube->color);
 }
 
-void drawCube(ProjectedCube *cube, bool drawVertices, bool drawLines, float radius, Color color){
-    if (drawVertices) drawPoints(cube->vertices, 8, radius, color);
-    if (drawLines) drawEdges(cube->edges, color);
+void drawFaces(ProjectedFace *faces, Color color){
+    for (int i = 0; i < 6; i++){
+        ProjectedFace face = faces[i];    
+        DrawTriangle(face.topR, face.topL, face.bottomL, face.color);
+        DrawTriangle(face.bottomL, face.bottomR, face.topR, face.color);
+    }
+}
+
+void drawCube(ProjectedCube *cube, bool wireframe, float radius, Color color){
+    if (wireframe) {
+        drawEdges(cube->edges, color);
+        drawPoints(cube->vertices, 8, radius, color);
+    }
+    else drawFaces(cube->faces, color);
 }

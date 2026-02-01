@@ -1,4 +1,5 @@
 #include "projection.h"
+#include "raylib.h"
 
 Vector2 projectScreen(Vector2 p, Screen screen){
     // Objetivo: x -> 0..WIDTH; y -> HEIGHT..0
@@ -38,9 +39,14 @@ void projectScreenPoints(Vector3 *pts, Vector2 *projected, size_t size, Screen s
 }
 
 void drawPoints(Vector2 *pts, size_t size, int radius, Color color){
+    Color colors[8] = {
+      GREEN, BLUE, RED, YELLOW,
+      GRAY, PINK, PURPLE, BROWN  
+    };
+
     for (size_t i = 0; i < size; i++) {
         Vector2 p = pts[i];
-        DrawCircle(p.x, p.y, radius, color);    
+        DrawCircle(p.x, p.y, radius, colors[i]);    
     }
 }
 

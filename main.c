@@ -9,7 +9,7 @@
 #define WIDTH 800
 #define HEIGHT 600
 #define FPS 144
-#define SPEED .01
+#define SPEED .05
 
 int main(void) {
     printf("Initializing Window...\n");
@@ -20,25 +20,36 @@ int main(void) {
 
     Screen screen = {WIDTH, HEIGHT};
 
-    Cube *cube = createCube((Vector3){0, 0, 20}, 10);
+    Cube *cube = createCube((Vector3){0, 0, 30}, 10, WHITE);
     if (!cube) return -1;
     ProjectedCube *projected = createProjectedCube();
     float radius = 50;
-    float angle = .07;
+    float angle = .01;
+    float speed = SPEED;
+    long count = 0xFF;
+
+    printf("App Started\n");
     
     while(!WindowShouldClose()){
         screen.w = GetScreenWidth();
         screen.h = GetScreenHeight();
         radius -= SPEED;
-        // rotateCubeZAxisLocalSpace(cube, angle);
+        rotateCubeZAxisLocalSpace(cube, angle);
         rotateCubeYAxisLocalSpace(cube, angle);
         // rotateCubeXAxisLocalSpace(cube, angle);
-        // updateCube(cube, SPEED);
+        if (count!=0) count--;
+        else updateCube(cube, speed);
+        for (int i = 0; i < 8; i++){
+            if (cube->vertices[i].z >= 80|| cube->vertices[i].z < 10) {
+                speed = -speed;
+                break;
+            }
+        }
         projectCube(cube, projected, screen);
         
         BeginDrawing();
             ClearBackground(BLACK);
-            drawCube(projected, false, true, 10, WHITE);
+            drawCube(projected, false, 10, WHITE);
             DrawFPS(0, 0); 
         EndDrawing();
     }
