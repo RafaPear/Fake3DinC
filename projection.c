@@ -13,12 +13,22 @@ Vector2 projectScreen(Vector2 p, Screen screen){
 }
 
 Vector2 project(Vector3 vec3, Screen screen){
-    if (vec3.z <= 0.01f) vec3.z = 0.01f;
+    float z = vec3.z;
+    if (z <= 0.01f) z = 0.01f;
     
-    return projectScreen((Vector2) {
-        .x = vec3.x / vec3.z,
-        .y = vec3.y / vec3.z 
-    }, screen);
+    float inv_z = 1.0f / z;
+    float px = vec3.x * inv_z;
+    float py = vec3.y * inv_z;
+    
+    float s = (screen.w < screen.h) ? screen.w : screen.h;
+    float half_s = s * 0.5f;
+    float offset_x = (screen.w - s) * 0.5f;
+    float offset_y = (screen.h - s) * 0.5f;
+    
+    return (Vector2){
+        .x = (px + 1.0f) * half_s + offset_x,
+        .y = (1.0f - (py + 1.0f) * 0.5f) * s + offset_y
+    };
 }
 
 Vector2 cutToVec3(Vector3 vec3){

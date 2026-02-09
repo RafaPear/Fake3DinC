@@ -18,6 +18,7 @@ typedef struct Cube{
   Vector3 *vertices;
   Edge *edges;
   Face *faces;
+  Vector3 center;
   int side;  
   Color color;
 } Cube;
@@ -49,6 +50,7 @@ void drawCube(ProjectedCube*, bool, float, Color);
 void rotateCubeYAxisLocalSpace(Cube*, float);
 void rotateCubeZAxisLocalSpace(Cube*, float);
 void rotateCubeXAxisLocalSpace(Cube*, float);
+void updateCubeCenter(Cube*);
 
 ProjectedCube *createProjectedCube();
 bool freeProjectedCube(ProjectedCube*);

@@ -44,18 +44,20 @@ long clamp(long a, long min, long max){
 
 void updateFacesColor(Face *faces, Color baseColor){
     for (int i = 0; i < 6; i++){
-        Face face = faces[i];
-        unsigned char middleZ = clamp((face.topR->z + face.bottomL->z)*2, 0, 255);
-        face.color = (Color){
-            .r = clamp(baseColor.r - middleZ, 1, 255),
-            .g = clamp(baseColor.g - middleZ, 1, 255),
-            .b = clamp(baseColor.b - middleZ, 1, 255),
-            .a = clamp(baseColor.a, 1, 255),
-        };
+        Face *face = &faces[i];
+        int middleZ = (int)((face->topR->z + face->bottomL->z) * 2.0f);
+        if (middleZ < 0) middleZ = 0;
+        if (middleZ > 255) middleZ = 255;
         
-        faces[i] = face;
+        int r = baseColor.r - middleZ;
+        int g = baseColor.g - middleZ;
+        int b = baseColor.b - middleZ;
+        
+        face->color.r = (r < 1) ? 1 : (r > 255 ? 255 : r);
+        face->color.g = (g < 1) ? 1 : (g > 255 ? 255 : g);
+        face->color.b = (b < 1) ? 1 : (b > 255 ? 255 : b);
+        face->color.a = baseColor.a;
     }
-    
 }
 
 void drawEdge(ProjectedEdge edge, Color color){
@@ -156,6 +158,8 @@ Cube *createCube(Vector3 pos, int side, Color color){
 
     printf("Populated edges.\n");
 
+    cube->center = pos;
+
     return cube;
 }
 
@@ -232,7 +236,7 @@ void rotateCubeXAxisWorldSpace(Cube *cube, float angle){
 
 // c = (1/N) * Σ v_i
 // centro = média aritmética dos vértices
-Vector3 cubeCenter(Cube *cube){
+void updateCubeCenter(Cube *cube){
     Vector3 c = {0, 0, 0};
 
     for (int i = 0; i < 8; i++){
@@ -241,11 +245,13 @@ Vector3 cubeCenter(Cube *cube){
         c.z += cube->vertices[i].z;
     }
 
-    c.x /= 8.0f;
-    c.y /= 8.0f;
-    c.z /= 8.0f;
+    cube->center.x = c.x * 0.125f;
+    cube->center.y = c.y * 0.125f;
+    cube->center.z = c.z * 0.125f;
+}
 
-    return c;
+Vector3 cubeCenter(Cube *cube){
+    return cube->center;
 }
 
 // v' = T⁻¹ · R_y(θ) · T · v
@@ -262,7 +268,7 @@ Vector3 cubeCenter(Cube *cube){
 //    x' = x₁ + cx
 //    z' = z₁ + cz
 void rotateCubeYAxisLocalSpace(Cube *cube, float angle){
-    Vector3 c0 = cubeCenter(cube);
+    Vector3 c0 = cube->center;
     float c = cosf(angle);
     float s = sinf(angle);
 
@@ -272,11 +278,8 @@ void rotateCubeYAxisLocalSpace(Cube *cube, float angle){
         float x0 = v->x - c0.x;
         float z0 = v->z - c0.z;
 
-        float x1 =  x0 * c + z0 * s;
-        float z1 = -x0 * s + z0 * c;
-
-        v->x = x1 + c0.x;
-        v->z = z1 + c0.z;
+        v->x = x0 * c + z0 * s + c0.x;
+        v->z = -x0 * s + z0 * c + c0.z;
     }
 }
 
@@ -294,7 +297,7 @@ void rotateCubeYAxisLocalSpace(Cube *cube, float angle){
 //    x' = x₁ + cx
 //    y' = y₁ + cy
 void rotateCubeZAxisLocalSpace(Cube *cube, float angle){
-    Vector3 c0 = cubeCenter(cube);
+    Vector3 c0 = cube->center;
     float c = cosf(angle);
     float s = sinf(angle);
 
@@ -304,12 +307,8 @@ void rotateCubeZAxisLocalSpace(Cube *cube, float angle){
         float x0 = v->x - c0.x;
         float y0 = v->y - c0.y;
 
-        float x1 = x0 * c - y0 * s;
-        float y1 = x0 * s + y0 * c;
-
-        v->x = x1 + c0.x;
-        v->y = y1 + c0.y;
-        // z permanece inalterado
+        v->x = x0 * c - y0 * s + c0.x;
+        v->y = x0 * s + y0 * c + c0.y;
     }
 }
 
@@ -327,7 +326,7 @@ void rotateCubeZAxisLocalSpace(Cube *cube, float angle){
 //    y' = y₁ + cy
 //    z' = z₁ + cz
 void rotateCubeXAxisLocalSpace(Cube *cube, float angle){
-    Vector3 c0 = cubeCenter(cube);
+    Vector3 c0 = cube->center;
     float c = cosf(angle);
     float s = sinf(angle);
 
@@ -337,19 +336,15 @@ void rotateCubeXAxisLocalSpace(Cube *cube, float angle){
         float y0 = v->y - c0.y;
         float z0 = v->z - c0.z;
 
-        float y1 = y0 * c - z0 * s;
-        float z1 = y0 * s + z0 * c;
-
-        v->y = y1 + c0.y;
-        v->z = z1 + c0.z;
-        // x permanece inalterado
+        v->y = y0 * c - z0 * s + c0.y;
+        v->z = y0 * s + z0 * c + c0.z;
     }
 }
 
 ProjectedCube *createProjectedCube(){
     Vector2 *vertices = malloc(sizeof(Vector2)*8);
     ProjectedEdge *edges = malloc(sizeof(ProjectedEdge)*12);
-    ProjectedFace *faces = malloc(sizeof(ProjectedFace)*12);
+    ProjectedFace *faces = malloc(sizeof(ProjectedFace)*6);
     ProjectedCube *cube = malloc(sizeof(ProjectedCube));
     cube->vertices = vertices;
     cube->edges = edges;
@@ -366,14 +361,24 @@ bool freeProjectedCube(ProjectedCube *cube){
 }
 
 void projectCube(Cube *cube, ProjectedCube *projected, Screen screen){
-    for (int i = 0; i < 8; i++) projected->vertices[i] = project(cube->vertices[i], screen);
-    for (int i = 0; i < 12; i++) projected->edges[i] = projectEdge(cube->edges[i], screen);
-    for (int i = 0; i < 6; i++) projected->faces[i] = projectFace(cube->faces[i], screen);
+    for (int i = 0; i < 8; i++) {
+        projected->vertices[i] = project(cube->vertices[i], screen);
+    }
+    for (int i = 0; i < 12; i++) {
+        projected->edges[i].start = project(*cube->edges[i].start, screen);
+        projected->edges[i].end = project(*cube->edges[i].end, screen);
+    }
+    for (int i = 0; i < 6; i++) {
+        projected->faces[i] = projectFace(cube->faces[i], screen);
+    }
 }
 
 void updateCube(Cube *cube, Vector3 delta){
-    updatePoints(cube->vertices, 8, delta);
-    updateEdges(cube->edges, delta);
+    if (delta.x != 0 || delta.y != 0 || delta.z != 0) {
+        updatePoints(cube->vertices, 8, delta);
+        updateEdges(cube->edges, delta);
+        updateCubeCenter(cube);
+    }
     updateFacesColor(cube->faces, cube->color);
 }
 
