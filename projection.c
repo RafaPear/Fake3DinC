@@ -50,11 +50,12 @@ void drawPoints(Vector2 *pts, size_t size, int radius, Color color){
     }
 }
 
-void updatePoint(Vector3 *point, float speed){
-    point->z += speed;
+void updatePoint(Vector3 *point, Vector3 delta){
+    point->x += delta.x;
+    point->y += delta.y;
+    point->z += delta.z;
 }
 
-void updatePoints(Vector3 *pts, size_t size, float speed){
-    for (size_t i = 0; i < size; i++) updatePoint(&pts[i], speed);
+void updatePoints(Vector3 *pts, size_t size, Vector3 delta){
+    for (size_t i = 0; i < size; i++) updatePoint(&pts[i], delta);
 }
-

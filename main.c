@@ -20,12 +20,12 @@ int main(void) {
 
     Screen screen = {WIDTH, HEIGHT};
 
-    Cube *cube = createCube((Vector3){0, 0, 30}, 10, WHITE);
+    Cube *cube = createCube((Vector3){0, 0, 20}, 10, RED);
     if (!cube) return -1;
     ProjectedCube *projected = createProjectedCube();
     float radius = 50;
     float angle = .01;
-    float speed = SPEED;
+    Vector3 speed = {0, 0, 0};
     long count = 0xFF;
 
     printf("App Started\n");
@@ -33,15 +33,15 @@ int main(void) {
     while(!WindowShouldClose()){
         screen.w = GetScreenWidth();
         screen.h = GetScreenHeight();
-        radius -= SPEED;
-        rotateCubeZAxisLocalSpace(cube, angle);
+        // radius -= SPEED;
+        // rotateCubeZAxisLocalSpace(cube, angle);
         rotateCubeYAxisLocalSpace(cube, angle);
         // rotateCubeXAxisLocalSpace(cube, angle);
-        if (count!=0) count--;
-        else updateCube(cube, speed);
+        // if (count!=0) count--;
+        updateCube(cube, speed);
         for (int i = 0; i < 8; i++){
             if (cube->vertices[i].z >= 80|| cube->vertices[i].z < 10) {
-                speed = -speed;
+                speed.z = -speed.z;
                 break;
             }
         }

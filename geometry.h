@@ -43,7 +43,7 @@ typedef struct ProjectedCube {
 
 Cube *createCube(Vector3, int, Color);
 bool freeCube(Cube*);
-void updateCube(Cube*, float);
+void updateCube(Cube*, Vector3);
 void projectCube(Cube*, ProjectedCube*, Screen);
 void drawCube(ProjectedCube*, bool, float, Color);
 void rotateCubeYAxisLocalSpace(Cube*, float);

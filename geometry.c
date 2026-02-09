@@ -27,13 +27,13 @@ ProjectedFace projectFace(Face face, Screen screen){
     };
 }
 
-void updateEdge(Edge *edge, float speed){
-    updatePoint(edge->start, speed);
-    updatePoint(edge->end, speed);
+void updateEdge(Edge *edge, Vector3 delta){
+    updatePoint(edge->start, delta);
+    updatePoint(edge->end, delta);
 }
 
-void updateEdges(Edge *edges, float speed){
-    for (int i = 0; i < 12; i++) updateEdge(&edges[i], speed);
+void updateEdges(Edge *edges, Vector3 delta){
+    for (int i = 0; i < 12; i++) updateEdge(&edges[i], delta);
 }
 
 long clamp(long a, long min, long max){
@@ -371,7 +371,7 @@ void projectCube(Cube *cube, ProjectedCube *projected, Screen screen){
     for (int i = 0; i < 6; i++) projected->faces[i] = projectFace(cube->faces[i], screen);
 }
 
-void updateCube(Cube *cube, float delta){
+void updateCube(Cube *cube, Vector3 delta){
     updatePoints(cube->vertices, 8, delta);
     updateEdges(cube->edges, delta);
     updateFacesColor(cube->faces, cube->color);
